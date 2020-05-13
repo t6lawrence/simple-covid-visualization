@@ -1,5 +1,11 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+CTRL+Click Individual States to compare them
+Check a Regional checkbox to view every state in that region
+Check "All States" to view every state
+
+create-react-app documentation below:
+
 ## Available Scripts
 
 In the project directory, you can run:

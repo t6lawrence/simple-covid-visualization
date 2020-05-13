@@ -6,9 +6,10 @@
 
 import React from 'react';
 import {ExtendedCheckbox as Checkbox} from './checkbox.js';
-import * as Constants from './state_constants.js';
+import {REGION_TEXT, ALL_REGIONS} from './state_constants.js';
 import JSONData from './data.json';
 
+// This class allows each data point to calculate an impact score as soon as it is loaded
 class StateDataPoint extends Object {
 	constructor(baseObject) {
 		super();
@@ -34,28 +35,60 @@ class FilterTable extends React.Component {
 		super(props);
 		
 		// Load Initial data from JSON
-		let rawData = JSON.parse(JSON.stringify(JSONData));
-		let initialData = [];
+		const rawData = JSON.parse(JSON.stringify(JSONData));
+		const initialData = [];
+		const dropdownOptions = [];
 		
 		// Upon reading a data entry for a state, calculate its score from the data given
-		rawData.forEach(rawDatum => initialData.push(new StateDataPoint(rawDatum)));
+		rawData.forEach(rawDatum => {
+			initialData.push(new StateDataPoint(rawDatum));
+			dropdownOptions.push({ name: rawDatum.state });
+		});
 		
-		const filters = Constants.REGION_TEXT.map((region, index) => {
+		// Initialize the region filters from the constants file
+		const filters = REGION_TEXT.map((region, index) => {
 			return {
 				name: region,
 				id: index,
-				checked: false
+				checked: false,
 			};
 		});
 		
 		this.state = {
+			dropdownOptions,
+			filters,
 			data: initialData,
 			filteredData: initialData,
 			isAllFilterChecked: true,
-			filters
 		};
 	}
 	
+	onStateSelect = event => {
+		// Determine which states have been selected
+		const options = event.target.options;
+		const filteredData = [];
+
+		for (let i = 0; i < options.length; i++) {
+			if (options[i].selected) {
+				filteredData.push(this.state.data[i]);
+			}
+		}
+
+		// Clear all the regional filters
+		const clearedFilters = this.state.filters.map(filter => {
+			return {
+				...filter,
+				checked: false,
+			};
+		});
+
+		this.setState({
+			filteredData,
+			filters: clearedFilters,
+			isAllFilterChecked: false
+		});
+	}
+
 	onCheckboxCheck = id => {
 		// Update state to reflect that the box has been checked
 		this.setState(state => ({
@@ -63,7 +96,7 @@ class FilterTable extends React.Component {
 			filters: state.filters.map(filter => {
 				return {
 					...filter,
-					checked: (filter.id === id) ? !filter.checked : filter.checked
+					checked: (filter.id === id) ? !filter.checked : filter.checked,
 				};
 			})
 		}), () => {
@@ -71,42 +104,41 @@ class FilterTable extends React.Component {
 			let statesToShow = [];
 			this.state.filters.forEach(region => {
 				if (region.checked) {
-					console.log(Constants.ALL_REGIONS);
-					console.log(region);
-					statesToShow = statesToShow.concat(Constants.ALL_REGIONS[region.name]);
+					statesToShow = statesToShow.concat(ALL_REGIONS[region.name]);
 				}
 			});
-			console.log(statesToShow);
 			const filteredData = this.state.data.filter(state => statesToShow.includes(state.stateID));
-			this.setState({filteredData});
+			this.setState({ filteredData });
 		});
-	};
+	}
 	
 	onAllFilterCheck = () => {
+		// Unchecking the All States checkbox shows you a blank table
 		if (this.state.isAllFilterChecked) {
 			this.setState({
 				isAllFilterChecked: false,
-				filteredData: []
+				filteredData: [],
 			});
 		} else {
+			// If you check All States, deselect all regions and show the whole dataset
 			const clearedFilters = this.state.filters.map(filter => {
 				return {
 					...filter,
-					checked: false
+					checked: false,
 				};
 			});
 			this.setState(state => ({
 				filters: clearedFilters,
 				isAllFilterChecked: true,
-				filteredData: state.data
+				filteredData: state.data,
 			}));
 		}
-	};
+	}
 	
 	render() {
 		const tableStyle = {
 			"border": "1px solid black",
-			"width": "100%"
+			"width": "100%",
 		}
 		
 		return (
@@ -126,6 +158,20 @@ class FilterTable extends React.Component {
 					checked={this.state.isAllFilterChecked}
 					onChange={this.onAllFilterCheck}
 				/>
+				<br />
+				<label>Or Select by Individual State (hold ctrl to select multiple)</label>
+				<br />
+				<select
+					onChange={this.onStateSelect}
+					id="states"
+					multiple
+				>
+					{this.state.dropdownOptions.map(state => {
+						return (
+							<option value={state.name}>{state.name}</option>
+						)
+					})}
+				</select>
 				<table style={tableStyle}>
 					<tr>
 						<th>State</th>
@@ -139,7 +185,7 @@ class FilterTable extends React.Component {
 						return (
 							<tr>
 								<th>{state.stateName}</th>
-								<th>{state.score}</th>
+								<th style={{"color":"red"}}>{state.score}</th>
 								<th>{state.population}</th>
 								<th>{state.populationDensity}</th>
 								<th>{state.totalCases}</th>
@@ -150,7 +196,7 @@ class FilterTable extends React.Component {
 				</table>
 			</React.Fragment>
 		);
-  }
+    }
 }
 
 export default FilterTable;
